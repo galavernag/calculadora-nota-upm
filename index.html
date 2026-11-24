@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>Simulador de Notas - Engenharia da Computação</title>
+    <!-- Carregamento do Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <!-- Fonte Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Ícones Lucide -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        mack: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            600: '#cc0000',
+                            700: '#a30000',
+                            800: '#800000',
+                            900: '#4a0404',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+        html{scroll-padding-top:env(safe-area-inset-top,0px)}
+        header.sticky{top:env(safe-area-inset-top,0px)}
+        body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:#fff;z-index:40}
+        /* Ajustes personalizados para inputs numéricos e scroll suave */
+        input[type="text"]::-webkit-inner-spin-button,
+        input[type="text"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        @keyframes pulse-border {
+            0%, 100% { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+            50% { border-color: #60a5fa; box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.05); }
+        }
+        .target-highlight {
+            animation: pulse-border 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Cabeçalho Institucional -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-mack-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                    <i data-lucide="calculator" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">Simulador de Notas &amp; Metas</h1>
+                    <p class="text-xs text-slate-500 font-medium">Engenharia da Computação • Critério de Aprovação: Média Final ≥ 6,00</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <span id="save-indicator" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg transition-opacity duration-300 opacity-0">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Salvo no navegador
+                </span>
+                <button onclick="openResetModal('current')" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 active:bg-slate-100 transition">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4 text-slate-500"></i>
+                    <span>Limpar Disciplina</span>
+                </button>
+                <button onclick="openResetModal('all')" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 active:bg-rose-200 transition">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Limpar Tudo</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Seletor de Disciplinas (Cards Horizontais / Grid Responsivo) -->
+        <section aria-label="Seleção de Disciplina">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <i data-lucide="book-open" class="w-4 h-4 text-mack-600"></i>
+                    Selecione a Disciplina (7 Componentes)
+                </h2>
+                <span class="text-xs text-slate-400 hidden sm:inline">Clique em uma disciplina para editar ou simular</span>
+            </div>
+            
+            <div id="subjects-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2.5">
+                <!-- Preenchido dinamicamente via JavaScript -->
+            </div>
+        </section>
+
+        <!-- Área Principal de Trabalho da Disciplina Selecionada -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Coluna Esquerda (8 colunas): Entradas de Notas e Seleção de Incógnita -->
+            <div class="lg:col-span-8 space-y-5">
+                
+                <!-- Card Cabeçalho da Disciplina Atual + Modo Cálculo de Nota Necessária -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span id="subject-code" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">CÓDIGO</span>
+                                <span id="subject-formula-badge" class="text-xs font-medium px-2 py-0.5 rounded bg-mack-50 text-mack-700 border border-mack-100">Fórmula</span>
+                            </div>
+                            <h3 id="subject-title" class="text-lg sm:text-xl font-bold text-slate-900 mt-1.5">Nome da Disciplina</h3>
+                        </div>
+
+                        <!-- Controle Rápido do Modo Simulação Alvo -->
+                        <div class="flex items-center gap-2 bg-blue-50/80 border border-blue-200 px-3 py-2 rounded-xl">
+                            <i data-lucide="target" class="w-4 h-4 text-blue-600 shrink-0"></i>
+                            <div class="text-xs">
+                                <span class="font-semibold text-blue-900 block">Alvo de Cálculo (Média ≥ 6,0):</span>
+                                <span id="target-status-label" class="text-blue-700">Nenhum campo selecionado</span>
+                            </div>
+                            <button id="clear-target-btn" onclick="setTargetField(null)" class="hidden ml-2 text-xs font-semibold text-blue-700 hover:text-blue-900 underline">
+                                Desativar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Banner de Resultado do Cálculo Reverso (Quando um campo alvo está ativo) -->
+                    <div id="target-result-banner" class="hidden mt-4 p-4 rounded-xl border transition-all">
+                        <!-- Preenchido via JS -->
+                    </div>
+
+                    <!-- Instrução rápida -->
+                    <p class="text-xs text-slate-500 mt-4 flex items-center gap-1.5">
+                        <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                        <span>Preencha as notas conhecidas (0 a 10) ou clique em <strong class="text-blue-600 font-semibold">"Calcular esta"</strong> em qualquer avaliação para descobrir a nota exata necessária para aprovação.</span>
+                    </p>
+                </div>
+
+                <!-- Grid das Avaliações: NI1 e NI2 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    
+                    <!-- Bloco NI1 -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                                <div>
+                                    <h4 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                                        Nota Intermediária 1 (NI1)
+                                    </h4>
+                                    <p id="ni1-formula-text" class="text-xs text-slate-500 mt-0.5 font-mono">Fórmula NI1</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block">Média NI1</span>
+                                    <span id="ni1-result" class="text-xl font-extrabold text-indigo-600">0,00</span>
+                                </div>
+                            </div>
+
+                            <div id="ni1-inputs-container" class="space-y-3">
+                                <!-- Campos A, B, C renderizados via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bloco NI2 -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                                <div>
+                                    <h4 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span>
+                                        Nota Intermediária 2 (NI2)
+                                    </h4>
+                                    <p id="ni2-formula-text" class="text-xs text-slate-500 mt-0.5 font-mono">Fórmula NI2</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block">Média NI2</span>
+                                    <span id="ni2-result" class="text-xl font-extrabold text-violet-600">0,00</span>
+                                </div>
+                            </div>
+
+                            <div id="ni2-inputs-container" class="space-y-3">
+                                <!-- Campos F, G, H renderizados via JS -->
+                            </div>
+                        </div>
+                        <div id="ni2-note" class="hidden mt-3 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                            <!-- Aviso específico (ex: Química Geral peso 0 em F) -->
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Bloco Extras: Participação (PI/Partic) e Avaliação Final (AF) -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                Complementos e Avaliação Final
+                            </h4>
+                            <p id="mi-formula-text" class="text-xs text-slate-500 mt-0.5 font-mono">Fórmula MI e MF</p>
+                        </div>
+                    </div>
+
+                    <div id="extras-inputs-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Campos Partic e AF renderizados via JS -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Coluna Direita (4 colunas): Painel de Resultados em Tempo Real -->
+            <div class="lg:col-span-4 space-y-5 lg:sticky lg:top-20">
+                
+                <!-- Card Principal de Média Final e Status -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="bg-slate-900 text-white p-5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Resultado Simulado</span>
+                            <span id="status-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-700 text-slate-200">
+                                Aguardando Notas
+                            </span>
+                        </div>
+
+                        <div class="mt-5 grid grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+                            <div>
+                                <span class="text-xs text-slate-400 block">Média Interm. (MI)</span>
+                                <span id="mi-display" class="text-2xl sm:text-3xl font-extrabold text-white mt-0.5 block">0,00</span>
+                            </div>
+                            <div class="border-l border-slate-800 pl-4">
+                                <span class="text-xs text-slate-400 block">Média Final (MF)</span>
+                                <span id="mf-display" class="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-0.5 block">0,00</span>
+                            </div>
+                        </div>
+
+                        <!-- Barra de Progresso até 6,0 -->
+                        <div class="mt-5">
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="text-slate-400">Progresso para Aprovação (6,00)</span>
+                                <span id="progress-percent" class="font-bold text-slate-200">0%</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden p-0.5">
+                                <div id="progress-bar" class="h-full rounded-full bg-amber-500 transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detalhamento Matemático Passo a Passo -->
+                    <div class="p-5 space-y-3 bg-white">
+                        <h5 class="text-xs font-bold uppercase tracking-wider text-slate-400">Composição da Nota</h5>
+                        
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between items-center py-1.5 border-b border-slate-100">
+                                <span class="text-slate-600">Parcela NI1 <span id="weight-ni1-label" class="text-xs text-slate-400">(40%)</span></span>
+                                <span id="contrib-ni1" class="font-semibold text-slate-800">0,00</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1.5 border-b border-slate-100">
+                                <span class="text-slate-600">Parcela NI2 <span id="weight-ni2-label" class="text-xs text-slate-400">(60%)</span></span>
+                                <span id="contrib-ni2" class="font-semibold text-slate-800">0,00</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1.5 border-b border-slate-100">
+                                <span class="text-slate-600">Participação (Partic/PI)</span>
+                                <span id="contrib-partic" class="font-semibold text-slate-800">+ 0,00</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1.5 border-b border-slate-100">
+                                <span class="text-slate-600 font-medium">Média Intermediária (MI)</span>
+                                <span id="summary-mi" class="font-bold text-slate-900">0,00</span>
+                            </div>
+                            <div id="af-summary-row" class="flex justify-between items-center py-1.5 text-slate-500">
+                                <span>Avaliação Final (AF)</span>
+                                <span id="summary-af" class="font-medium">Não aplicada</span>
+                            </div>
+                        </div>
+
+                        <!-- Caixa Explicativa da Regra -->
+                        <div id="rule-explanation" class="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 leading-relaxed">
+                            Se <strong>MI ≥ 6,00</strong>, você é aprovado direto sem precisar de Avaliação Final (MF = MI). Caso <strong>MI &lt; 6,00</strong>, a Média Final será <strong>(MI + AF) / 2 ≥ 6,00</strong>.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumo Geral do Semestre -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                            <i data-lucide="bar-chart-3" class="w-4 h-4 text-mack-600"></i>
+                            Resumo Geral das Disciplinas
+                        </h4>
+                    </div>
+                    <div id="all-subjects-summary" class="space-y-2">
+                        <!-- Lista compacta gerada via JS -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal de Confirmação para Limpar Dados (Substitui confirm()) -->
+    <div id="reset-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 transform transition-all">
+            <div class="flex items-center gap-3 text-rose-600 mb-3">
+                <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                </div>
+                <h3 id="modal-title" class="text-lg font-bold text-slate-900">Limpar notas?</h3>
+            </div>
+            <p id="modal-description" class="text-sm text-slate-600 mb-6">
+                Tem certeza que deseja apagar as notas preenchidas? Esta ação deixará os campos em branco novamente.
+            </p>
+            <div class="flex justify-end gap-2.5">
+                <button onclick="closeResetModal()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                    Cancelar
+                </button>
+                <button id="confirm-reset-btn" class="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition">
+                    Sim, limpar notas
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Definição exata das disciplinas e fórmulas conforme o Mapa de Notas e Faltas
+        const SUBJECTS_CONFIG = [
+            {
+                id: 'algoritmos',
+                code: '6345105',
+                shortName: 'Algoritmos I',
+                name: 'ALGORITMOS E PROGRAMAÇÃO I',
+                ni1Weights: { A: 0.6, B: 0.2, C: 0.2 },
+                ni2Weights: { F: 0.8, G: 0.2 },
+                miWeights: { ni1: 0.4, ni2: 0.6 },
+                ni1FormulaText: 'NI1 = (A×6 + B×2 + C×2) / 10',
+                ni2FormulaText: 'NI2 = (F×8 + G×2) / 10',
+                miFormulaText: 'MI = (NI1×4 + NI2×6) / 10 + Partic'
+            },
+            {
+                id: 'cts',
+                code: '6345106',
+                shortName: 'Ciência, Tec. e Soc.',
+                name: 'CIÊNCIA, TECNOLOGIA E SOCIEDADE NAS ENGENHARIAS',
+                ni1Weights: { A: 0.4, B: 0.4, C: 0.2 },
+                ni2Weights: { F: 0.4, G: 0.4, H: 0.2 },
+                miWeights: { ni1: 0.4, ni2: 0.6 },
+                ni1FormulaText: 'NI1 = (A×40 + B×40 + C×20) / 100',
+                ni2FormulaText: 'NI2 = (F×40 + G×40 + H×20) / 100',
+                miFormulaText: 'MI = (NI1×40 + NI2×60) / 100 + Partic'
+            },
+            {
+                id: 'ambiente',
+                code: '6345107',
+                shortName: 'Ciências do Ambiente',
+                name: 'CIÊNCIAS DO AMBIENTE',
+                ni1Weights: { A: 0.3, B: 0.5, C: 0.2 },
+                ni2Weights: { F: 0.5, G: 0.5 },
+                miWeights: { ni1: 0.4, ni2: 0.6 },
+                ni1FormulaText: 'NI1 = (A×3 + B×5 + C×2) / 10',
+                ni2FormulaText: 'NI2 = (F×5 + G×5) / 10',
+                miFormulaText: 'MI = (NI1×4 + NI2×6) / 10 + Partic'
+            },
+            {
+                id: 'etica',
+                code: '6345108',
+                shortName: 'Ética e Cidadania',
+                name: 'ÉTICA E CIDADANIA',
+                ni1Weights: { A: 0.5, B: 0.5 },
+                ni2Weights: { F: 0.5, G: 0.5 },
+                miWeights: { ni1: 0.5, ni2: 0.5 },
+                ni1FormulaText: 'NI1 = (A×5 + B×5) / 10',
+                ni2FormulaText: 'NI2 = (F×5 + G×5) / 10',
+                miFormulaText: 'MI = (NI1×5 + NI2×5) / 10 + Partic'
+            },
+            {
+                id: 'fisica',
+                code: '6345109',
+                shortName: 'Física Geral I',
+                name: 'FÍSICA GERAL E EXPERIMENTAL I',
+                ni1Weights: { A: 0.7, B: 0.2, C: 0.1 },
+                ni2Weights: { F: 0.7, G: 0.2, H: 0.1 },
+                miWeights: { ni1: 0.4, ni2: 0.6 },
+                ni1FormulaText: 'NI1 = (A×7 + B×2 + C×1) / 10',
+                ni2FormulaText: 'NI2 = (F×7 + G×2 + H×1) / 10',
+                miFormulaText: 'MI = (NI1×4 + NI2×6) / 10 + Partic'
+            },
+            {
+                id: 'matematica',
+                code: '6345110',
+                shortName: 'Fund. de Matemática',
+                name: 'FUNDAMENTOS DE MATEMÁTICA',
+                ni1Weights: { A: 0.2, B: 0.4, C: 0.4 },
+                ni2Weights: { F: 0.5, G: 0.5 },
+                miWeights: { ni1: 0.4, ni2: 0.6 },
+                ni1FormulaText: 'NI1 = (A×2 + B×4 + C×4) / 10',
+                ni2FormulaText: 'NI2 = (F×5 + G×5) / 10',
+                miFormulaText: 'MI = (NI1×4 + NI2×6) / 10 + Partic'
+            },
+            {
+                id: 'quimica',
+                code: '6345111',
+                shortName: 'Química Geral',
+                name: 'QUÍMICA GERAL',
+                ni1Weights: { A: 0.7, B: 0.2, C: 0.1 },
+                ni2Weights: { G: 0.8, H: 0.2 }, // F possui peso 0 conforme boletim
+                miWeights: { ni1: 0.4, ni2: 0.6 },
+                ni1FormulaText: 'NI1 = (A×70 + B×20 + C×10) / 100',
+                ni2FormulaText: 'NI2 = (F×0 + G×80 + H×20) / 100',
+                ni2Note: 'Nota: Na disciplina de Química Geral, a avaliação F possui peso 0% no boletim oficial.',
+                miFormulaText: 'MI = (NI1×40 + NI2×60) / 100 + Partic'
+            }
+        ];
+
+        const STORAGE_KEY = 'mackenzie_engcomp_grade_simulator_v1';
+
+        // Estado da aplicação (inicia 100% vazio sem notas prévias)
+        let state = {
+            selectedSubjectId: SUBJECTS_CONFIG[0].id,
+            grades: {},      // { [subjectId]: { A: '', B: '', ... } }
+            targetField: {}  // { [subjectId]: 'G' | null }
+        };
+
+        // Inicializa estrutura vazia para todas as disciplinas
+        function createEmptyGradesState() {
+            const empty = {};
+            SUBJECTS_CONFIG.forEach(sub => {
+                empty[sub.id] = {
+                    A: '', B: '', C: '',
+                    F: '', G: '', H: '',
+                    Partic: '', AF: ''
+                };
+            });
+            return empty;
+        }
+
+        // Carrega dados salvos no localStorage (se o usuário já tiver simulado antes)
+        function loadState() {
+            state.grades = createEmptyGradesState();
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.selectedSubjectId && SUBJECTS_CONFIG.some(s => s.id === parsed.selectedSubjectId)) {
+                        state.selectedSubjectId = parsed.selectedSubjectId;
+                    }
+                    if (parsed.grades) {
+                        SUBJECTS_CONFIG.forEach(sub => {
+                            if (parsed.grades[sub.id]) {
+                                state.grades[sub.id] = { ...state.grades[sub.id], ...parsed.grades[sub.id] };
+                            }
+                        });
+                    }
+                    if (parsed.targetField) {
+                        state.targetField = parsed.targetField;
+                    }
+                }
+            } catch (e) {
+                console.warn('Não foi possível carregar dados salvos:', e);
+            }
+        }
+
+        // Salva no localStorage e exibe feedback discreto
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                const indicator = document.getElementById('save-indicator');
+                if (indicator) {
+                    indicator.classList.remove('opacity-0');
+                    clearTimeout(window.saveTimeout);
+                    window.saveTimeout = setTimeout(() => {
+                        indicator.classList.add('opacity-0');
+                    }, 1800);
+                }
+            } catch (e) {
+                console.warn('Erro ao salvar estado:', e);
+            }
+        }
+
+        // Converte string de entrada (aceitando vírgula ou ponto) para número válido entre 0 e 10
+        function parseGrade(val) {
+            if (val === null || val === undefined || String(val).trim() === '') return null;
+            const normalized = String(val).replace(',', '.').trim();
+            const num = parseFloat(normalized);
+            if (isNaN(num)) return null;
+            return Math.max(0, Math.min(10, num));
+        }
+
+        // Formata número para exibição brasileira (ex: 7,45)
+        function formatBR(num) {
+            if (num === null || num === undefined || isNaN(num)) return '0,00';
+            return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Verifica se o usuário preencheu ao menos uma nota na disciplina
+        function hasAnyGrade(subId, overrideValues = null) {
+            const vals = overrideValues || state.grades[subId] || {};
+            return Object.values(vals).some(v => parseGrade(v) !== null);
+        }
+
+        // Calcula NI1, NI2, MI, MF e Status para uma disciplina
+        function calculateSubjectMetrics(subject, customValues = null) {
+            const raw = customValues || state.grades[subject.id] || {};
+            
+            // NI1
+            let ni1 = 0;
+            Object.entries(subject.ni1Weights).forEach(([key, weight]) => {
+                const val = parseGrade(raw[key]) ?? 0;
+                ni1 += val * weight;
+            });
+
+            // NI2
+            let ni2 = 0;
+            Object.entries(subject.ni2Weights).forEach(([key, weight]) => {
+                const val = parseGrade(raw[key]) ?? 0;
+                ni2 += val * weight;
+            });
+
+            // Participação (PI / Partic)
+            const partic = parseGrade(raw.Partic) ?? 0;
+
+            // MI
+            const contribNi1 = ni1 * subject.miWeights.ni1;
+            const contribNi2 = ni2 * subject.miWeights.ni2;
+            const miRaw = contribNi1 + contribNi2 + partic;
+            const mi = Math.round(miRaw * 10 + 1e-9) / 10; // o boletim arredonda a MI para 1 casa
+
+            // AF e MF
+            const afVal = parseGrade(raw.AF);
+            let mf = mi;
+            let usedAF = false;
+
+            // Regra: Se MI >= 6.0 e não há AF simulada/lançada, MF = MI.
+            // Se MI < 6.0 e há AF preenchida (ou se AF foi explicitamente preenchida quando MI < 6), MF = (MI + AF) / 2.
+            if (mi < 6.0 && afVal !== null) {
+                mf = (mi + afVal) / 2;
+                usedAF = true;
+            } else if (mi >= 6.0) {
+                mf = mi;
+                usedAF = false;
+            }
+
+            // Determina status acadêmico
+            const anyEntered = hasAnyGrade(subject.id, raw);
+            let status = 'pending'; // pending, approved_direct, approved_af, exam_needed, failed
+
+            if (!anyEntered) {
+                status = 'pending';
+            } else if (mi >= 6.0) {
+                status = 'approved_direct';
+            } else if (usedAF) {
+                status = mf >= 6.0 ? 'approved_af' : 'failed';
+            } else {
+                status = 'exam_needed';
+            }
+
+            return {
+                ni1,
+                ni2,
+                contribNi1,
+                contribNi2,
+                partic,
+                mi,
+                miRaw,
+                afVal,
+                mf,
+                usedAF,
+                status,
+                anyEntered
+            };
+        }
+
+        // Calcula a nota exata necessária no campo alvo selecionado para que MF >= 6,00
+        function calculateRequiredTargetGrade(subject, targetKey) {
+            if (!targetKey) return null;
+
+            const currentGrades = { ...state.grades[subject.id] };
+            // Zera temporariamente o campo alvo para descobrir a base atual
+            const testGradesZero = { ...currentGrades, [targetKey]: '0' };
+            const baseMetrics = calculateSubjectMetrics(subject, testGradesZero);
+
+            const targetScore = 6.0;
+            let required = 0;
+            let mode = 'MI'; // 'MI' (direto) ou 'AF' (via exame final)
+
+            if (targetKey === 'AF') {
+                mode = 'AF';
+                // Precisa que (MI + AF) / 2 >= 6.0  =>  AF >= 12.0 - MI
+                if (baseMetrics.mi >= 6.0) {
+                    required = 0; // Já passou direto sem AF!
+                } else {
+                    required = (targetScore * 2) - baseMetrics.mi;
+                }
+            } else {
+                // O alvo é A, B, C, F, G, H ou Partic.
+                // Primeiro verificamos quanto precisa para atingir MI >= 6,00 (aprovação direta).
+                // Se o usuário já preencheu AF e quer saber quanto precisa para (MI + AF)/2 >= 6,00,
+                // priorizamos mostrar a meta para aprovação direta (MI >= 6,00), mas também informamos se AF ajuda.
+                let factorInMI = 0;
+                if (subject.ni1Weights[targetKey] !== undefined) {
+                    factorInMI = subject.ni1Weights[targetKey] * subject.miWeights.ni1;
+                } else if (subject.ni2Weights[targetKey] !== undefined) {
+                    factorInMI = subject.ni2Weights[targetKey] * subject.miWeights.ni2;
+                } else if (targetKey === 'Partic') {
+                    factorInMI = 1.0;
+                }
+
+                if (factorInMI > 0) {
+                    const missingMI = 5.95 - baseMetrics.miRaw; // MI arredondada para 6,0 a partir de 5,95
+                    required = missingMI / factorInMI;
+                }
+            }
+
+            // Corrige pequenas imprecisões de ponto flutuante (ex: -0.0000000001)
+            if (Math.abs(required) < 1e-9) required = 0;
+
+            return {
+                targetKey,
+                required,
+                mode,
+                baseMI: baseMetrics.mi
+            };
+        }
+
+        // Alterna o campo selecionado como alvo de cálculo
+        function setTargetField(fieldKey) {
+            const subId = state.selectedSubjectId;
+            if (state.targetField[subId] === fieldKey) {
+                state.targetField[subId] = null;
+            } else {
+                state.targetField[subId] = fieldKey;
+            }
+            saveState();
+            renderAll();
+        }
+
+        // Atualiza nota digitada pelo usuário
+        function handleGradeInput(fieldKey, rawValue) {
+            const subId = state.selectedSubjectId;
+            // Permite apenas dígitos, ponto e vírgula
+            let sanitized = rawValue.replace(/[^0-9.,]/g, '');
+            
+            // Garante apenas um separador decimal
+            const parts = sanitized.split(/[.,]/);
+            if (parts.length > 2) {
+                sanitized = parts[0] + ',' + parts.slice(1).join('');
+            }
+
+            // Limita o valor máximo a 10 se o número digitado ultrapassar 10
+            const numericCheck = parseFloat(sanitized.replace(',', '.'));
+            if (!isNaN(numericCheck) && numericCheck > 10) {
+                sanitized = '10';
+            }
+
+            state.grades[subId][fieldKey] = sanitized;
+            saveState();
+            updateDynamicCalculations();
+        }
+
+        // Formata o campo ao perder o foco (blur) se válido
+        function handleGradeBlur(fieldKey) {
+            const subId = state.selectedSubjectId;
+            const raw = state.grades[subId][fieldKey];
+            const parsed = parseGrade(raw);
+            if (parsed !== null) {
+                state.grades[subId][fieldKey] = parsed.toFixed(2).replace('.', ',');
+            } else {
+                state.grades[subId][fieldKey] = '';
+            }
+            saveState();
+            renderAll();
+        }
+
+        // Seleciona outra disciplina
+        function selectSubject(subId) {
+            state.selectedSubjectId = subId;
+            saveState();
+            renderAll();
+        }
+
+        // Renderiza os cards superiores das 7 disciplinas
+        function renderSubjectsSelector() {
+            const container = document.getElementById('subjects-grid');
+            container.innerHTML = '';
+
+            SUBJECTS_CONFIG.forEach(sub => {
+                const isSelected = sub.id === state.selectedSubjectId;
+                const metrics = calculateSubjectMetrics(sub);
+                const hasTarget = Boolean(state.targetField[sub.id]);
+
+                let badgeColor = 'bg-slate-100 text-slate-500';
+                let badgeText = 'Vazio';
+
+                if (metrics.status === 'approved_direct' || metrics.status === 'approved_af') {
+                    badgeColor = 'bg-emerald-100 text-emerald-700';
+                    badgeText = `MF ${formatBR(metrics.mf)}`;
+                } else if (metrics.status === 'exam_needed') {
+                    badgeColor = 'bg-amber-100 text-amber-800';
+                    badgeText = `MI ${formatBR(metrics.mi)}`;
+                } else if (metrics.status === 'failed') {
+                    badgeColor = 'bg-rose-100 text-rose-700';
+                    badgeText = `MF ${formatBR(metrics.mf)}`;
+                }
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => selectSubject(sub.id);
+                btn.className = `text-left p-3 rounded-xl border transition-all flex flex-col justify-between min-h-[84px] ${
+                    isSelected
+                        ? 'bg-mack-600 text-white border-mack-700 shadow-md ring-2 ring-mack-600/20'
+                        : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`;
+
+                btn.innerHTML = `
+                    <div class="flex items-center justify-between w-full gap-1">
+                        <span class="text-[10px] font-bold uppercase tracking-wider ${isSelected ? 'text-mack-100' : 'text-slate-400'}">
+                            ${sub.code}
+                        </span>
+                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isSelected ? 'bg-white/20 text-white' : badgeColor}">
+                            ${badgeText}
+                        </span>
+                    </div>
+                    <div class="mt-1.5 flex items-end justify-between gap-1">
+                        <span class="text-xs font-bold leading-snug line-clamp-2 ${isSelected ? 'text-white' : 'text-slate-800'}">
+                            ${sub.shortName}
+                        </span>
+                        ${hasTarget ? `<i data-lucide="target" class="w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-amber-200' : 'text-blue-600'}"></i>` : ''}
+                    </div>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        // Cria o componente HTML de um campo de avaliação individual (A, B, C, F, G, H, Partic, AF)
+        function createGradeFieldCard(fieldKey, label, subLabel, weightText, isTarget) {
+            const subId = state.selectedSubjectId;
+            const currentValue = state.grades[subId][fieldKey] ?? '';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = `p-3.5 rounded-xl border transition-all ${
+                isTarget
+                    ? 'bg-blue-50/70 border-blue-500 target-highlight'
+                    : 'bg-slate-50/70 border-slate-200 hover:border-slate-300'
+            }`;
+
+            wrapper.innerHTML = `
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-bold text-sm text-slate-900">${label}</span>
+                            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-md ${
+                                isTarget ? 'bg-blue-100 text-blue-800' : 'bg-white text-slate-600 border border-slate-200'
+                            }">${weightText}</span>
+                        </div>
+                        <span class="text-[11px] text-slate-500 block mt-0.5">${subLabel}</span>
+                    </div>
+
+                    <button type="button" onclick="setTargetField('${fieldKey}')"
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                            isTarget
+                                ? 'bg-blue-600 text-white shadow-xs hover:bg-blue-700'
+                                : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-400 hover:text-blue-600'
+                        }"
+                        title="Calcular quanto precisa tirar nesta avaliação para média >= 6,0">
+                        <i data-lucide="${isTarget ? 'check-circle' : 'target'}" class="w-3.5 h-3.5"></i>
+                        <span>${isTarget ? 'Calculando' : 'Calcular esta'}</span>
+                    </button>
+                </div>
+
+                <div class="relative">
+                    ${isTarget ? `
+                        <div id="target-box-${fieldKey}" class="w-full h-11 px-3.5 rounded-lg bg-white border border-blue-300 flex items-center justify-between text-blue-700 font-bold text-base select-none">
+                            <span class="flex items-center gap-1.5">
+                                <i data-lucide="sparkles" class="w-4 h-4 text-blue-500"></i>
+                                <span id="target-inline-value-${fieldKey}">Calculando...</span>
+                            </span>
+                            <span class="text-[11px] font-medium uppercase tracking-wider text-blue-500">Incógnita (?)</span>
+                        </div>
+                    ` : `
+                        <input type="text"
+                            inputmode="decimal"
+                            id="input-${fieldKey}"
+                            value="${currentValue}"
+                            placeholder="0,00"
+                            oninput="handleGradeInput('${fieldKey}', this.value)"
+                            onblur="handleGradeBlur('${fieldKey}')"
+                            class="w-full h-11 px-3.5 rounded-lg bg-white border border-slate-300 text-slate-900 font-bold text-base placeholder:text-slate-300 placeholder:font-normal focus:outline-none focus:border-mack-600 focus:ring-2 focus:ring-mack-600/15 transition"
+                        />
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400 pointer-events-none">/ 10</span>
+                    `}
+                </div>
+            `;
+            return wrapper;
+        }
+
+        // Renderiza os campos da disciplina selecionada
+        function renderSelectedSubjectForm() {
+            const subject = SUBJECTS_CONFIG.find(s => s.id === state.selectedSubjectId);
+            const activeTarget = state.targetField[subject.id] || null;
+
+            // Cabeçalho
+            document.getElementById('subject-code').textContent = `CÓD. ${subject.code}`;
+            document.getElementById('subject-formula-badge').textContent = `MI: ${Math.round(subject.miWeights.ni1 * 100)}% NI1 + ${Math.round(subject.miWeights.ni2 * 100)}% NI2`;
+            document.getElementById('subject-title').textContent = subject.name;
+
+            // Status do Alvo
+            const targetLabel = document.getElementById('target-status-label');
+            const clearTargetBtn = document.getElementById('clear-target-btn');
+            if (activeTarget) {
+                const friendlyName = activeTarget === 'Partic' ? 'Participação (PI)' : (activeTarget === 'AF' ? 'Avaliação Final (AF)' : `Avaliação ${activeTarget}`);
+                targetLabel.textContent = `Descobrindo nota necessária em ${friendlyName}`;
+                clearTargetBtn.classList.remove('hidden');
+            } else {
+                targetLabel.textContent = 'Selecione "Calcular esta" em uma nota';
+                clearTargetBtn.classList.add('hidden');
+            }
+
+            // Fórmulas textuais
+            document.getElementById('ni1-formula-text').textContent = subject.ni1FormulaText;
+            document.getElementById('ni2-formula-text').textContent = subject.ni2FormulaText;
+            document.getElementById('mi-formula-text').textContent = `${subject.miFormulaText}  |  MF = (MI + AF) / 2`;
+
+            // Nota específica de NI2 (ex: Química Geral)
+            const ni2NoteEl = document.getElementById('ni2-note');
+            if (subject.ni2Note) {
+                ni2NoteEl.textContent = subject.ni2Note;
+                ni2NoteEl.classList.remove('hidden');
+            } else {
+                ni2NoteEl.classList.add('hidden');
+            }
+
+            // Renderiza NI1
+            const ni1Container = document.getElementById('ni1-inputs-container');
+            ni1Container.innerHTML = '';
+            Object.entries(subject.ni1Weights).forEach(([key, weight]) => {
+                const pct = Math.round(weight * 100);
+                const card = createGradeFieldCard(
+                    key,
+                    `Avaliação ${key}`,
+                    `Equivale a ${Math.round(weight * subject.miWeights.ni1 * 100)}% da MI`,
+                    `Peso ${pct}% da NI1`,
+                    activeTarget === key
+                );
+                ni1Container.appendChild(card);
+            });
+
+            // Renderiza NI2
+            const ni2Container = document.getElementById('ni2-inputs-container');
+            ni2Container.innerHTML = '';
+            Object.entries(subject.ni2Weights).forEach(([key, weight]) => {
+                const pct = Math.round(weight * 100);
+                const card = createGradeFieldCard(
+                    key,
+                    `Avaliação ${key}`,
+                    `Equivale a ${Math.round(weight * subject.miWeights.ni2 * 100)}% da MI`,
+                    `Peso ${pct}% da NI2`,
+                    activeTarget === key
+                );
+                ni2Container.appendChild(card);
+            });
+
+            // Renderiza Extras (Participação e AF)
+            const extrasContainer = document.getElementById('extras-inputs-container');
+            extrasContainer.innerHTML = '';
+            
+            const particCard = createGradeFieldCard(
+                'Partic',
+                'Participação / PI',
+                'Somado diretamente à Média Intermediária (MI)',
+                'Soma Direta',
+                activeTarget === 'Partic'
+            );
+            extrasContainer.appendChild(particCard);
+
+            const afCard = createGradeFieldCard(
+                'AF',
+                'Avaliação Final (AF)',
+                'Aplicada caso MI < 6,00: MF = (MI + AF) / 2',
+                'Peso 50% c/ MI',
+                activeTarget === 'AF'
+            );
+            extrasContainer.appendChild(afCard);
+        }
+
+        // Atualiza todos os cálculos, banners, gráficos e resumo sem recriar os inputs (evita perder foco ao digitar)
+        function updateDynamicCalculations() {
+            const subject = SUBJECTS_CONFIG.find(s => s.id === state.selectedSubjectId);
+            const activeTarget = state.targetField[subject.id] || null;
+
+            // Se houver um campo alvo selecionado, calculamos o valor necessário e também simulamos o resultado caso o aluno tire essa nota
+            const targetCalc = activeTarget ? calculateRequiredTargetGrade(subject, activeTarget) : null;
+
+            // Atualiza banner de resultado do alvo e valor inline no campo bloqueado
+            const banner = document.getElementById('target-result-banner');
+            if (targetCalc) {
+                banner.classList.remove('hidden');
+                const fieldDisplayName = targetCalc.targetKey === 'Partic'
+                    ? 'Participação (PI)'
+                    : (targetCalc.targetKey === 'AF' ? 'Avaliação Final (AF)' : `Avaliação ${targetCalc.targetKey}`);
+
+                const inlineSpan = document.getElementById(`target-inline-value-${targetCalc.targetKey}`);
+
+                if (targetCalc.required <= 0) {
+                    banner.className = 'mt-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200 text-emerald-900 flex items-start gap-3';
+                    banner.innerHTML = `
+                        <i data-lucide="party-popper" class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5"></i>
+                        <div class="text-sm">
+                            <p class="font-bold text-emerald-900">Meta já alcançada!</p>
+                            <p class="text-emerald-800 mt-0.5">Você já atingiu a média <strong>6,00</strong> mesmo tirando <strong>0,00</strong> em <strong>${fieldDisplayName}</strong>.</p>
+                        </div>
+                    `;
+                    if (inlineSpan) inlineSpan.textContent = '0,00 (Já aprovado)';
+                } else if (targetCalc.required <= 10.0) {
+                    const reqFormatted = formatBR(Math.ceil(targetCalc.required * 100 - 1e-9) / 100);
+                    banner.className = 'mt-4 p-4 rounded-xl border bg-blue-50 border-blue-200 text-blue-900 flex items-start gap-3';
+                    banner.innerHTML = `
+                        <i data-lucide="target" class="w-5 h-5 text-blue-600 shrink-0 mt-0.5"></i>
+                        <div class="text-sm">
+                            <p class="font-bold text-blue-950">Nota necessária em ${fieldDisplayName}: <span class="text-lg underline decoration-blue-400">${reqFormatted}</span></p>
+                            <p class="text-blue-800 mt-0.5">
+                                ${targetCalc.mode === 'AF'
+                                    ? `Com sua MI atual de <strong>${formatBR(targetCalc.baseMI)}</strong>, você precisa tirar pelo menos <strong>${reqFormatted}</strong> na AF para que (MI + AF)/2 = 6,00.`
+                                    : `Tirando <strong>${reqFormatted}</strong> em <strong>${fieldDisplayName}</strong>, sua Média Intermediária (MI) atingirá <strong>6,00</strong> (arredondada a 1 casa, como no boletim) (aprovação direta sem AF).`
+                                }
+                            </p>
+                        </div>
+                    `;
+                    if (inlineSpan) inlineSpan.textContent = `Precisa de ${reqFormatted}`;
+                } else {
+                    const reqFormatted = formatBR(Math.ceil(targetCalc.required * 100 - 1e-9) / 100);
+                    // Calcula quanto seria necessário na AF caso ele tire 10,00 nesta avaliação
+                    const maxScenarioGrades = { ...state.grades[subject.id], [targetCalc.targetKey]: '10' };
+                    const maxMetrics = calculateSubjectMetrics(subject, maxScenarioGrades);
+                    const afNeededEvenWithTen = Math.max(0, 12.0 - maxMetrics.mi);
+
+                    banner.className = 'mt-4 p-4 rounded-xl border bg-amber-50 border-amber-300 text-amber-950 flex items-start gap-3';
+                    banner.innerHTML = `
+                        <i data-lucide="alert-circle" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+                        <div class="text-sm">
+                            <p class="font-bold text-amber-950">Não é possível atingir 6,00 apenas com ${fieldDisplayName}</p>
+                            <p class="text-amber-900 mt-0.5">
+                                Seria necessário tirar <strong>${reqFormatted}</strong> (acima do limite 10,00).
+                                ${targetCalc.mode !== 'AF'
+                                    ? `Se você tirar <strong>10,00</strong> em ${fieldDisplayName}, sua MI irá para <strong>${formatBR(maxMetrics.mi)}</strong> e você precisará de <strong>${formatBR(afNeededEvenWithTen)}</strong> na <strong>AF (Avaliação Final)</strong>.`
+                                    : `Mesmo tirando 10,00 na AF, a média final máxima será <strong>${formatBR((targetCalc.baseMI + 10) / 2)}</strong>.`
+                                }
+                            </p>
+                        </div>
+                    `;
+                    if (inlineSpan) inlineSpan.textContent = `${reqFormatted} (> 10,00)`;
+                }
+            } else {
+                banner.classList.add('hidden');
+            }
+
+            // Calcula métricas atuais (com o campo alvo considerado como 0 se estiver vazio/bloqueado)
+            const calcGrades = { ...state.grades[subject.id] };
+            if (activeTarget) {
+                calcGrades[activeTarget] = '0';
+            }
+            const m = calculateSubjectMetrics(subject, calcGrades);
+
+            // Atualiza displays de NI1 e NI2
+            document.getElementById('ni1-result').textContent = formatBR(m.ni1);
+            document.getElementById('ni2-result').textContent = formatBR(m.ni2);
+
+            // Atualiza painel lateral de resultados
+            document.getElementById('mi-display').textContent = formatBR(m.mi);
+            const mfDisplay = document.getElementById('mf-display');
+            mfDisplay.textContent = formatBR(m.mf);
+
+            // Cores da MF
+            if (!m.anyEntered) {
+                mfDisplay.className = 'text-2xl sm:text-3xl font-extrabold text-slate-300 mt-0.5 block';
+            } else if (m.mf >= 6.0) {
+                mfDisplay.className = 'text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-0.5 block';
+            } else {
+                mfDisplay.className = 'text-2xl sm:text-3xl font-extrabold text-amber-400 mt-0.5 block';
+            }
+
+            // Badge de Status
+            const statusBadge = document.getElementById('status-badge');
+            if (m.status === 'pending') {
+                statusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-slate-700 text-slate-300';
+                statusBadge.textContent = 'Aguardando Notas';
+            } else if (m.status === 'approved_direct') {
+                statusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                statusBadge.textContent = 'Aprovado Direto (MI ≥ 6)';
+            } else if (m.status === 'approved_af') {
+                statusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                statusBadge.textContent = 'Aprovado com AF (MF ≥ 6)';
+            } else if (m.status === 'exam_needed') {
+                statusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+                statusBadge.textContent = 'Em Exame / Pendente (MI < 6)';
+            } else {
+                statusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+                statusBadge.textContent = 'Abaixo da Média (MF < 6)';
+            }
+
+            // Barra de progresso até 6,00
+            const pct = Math.min(100, Math.round((m.mf / 6.0) * 100));
+            document.getElementById('progress-percent').textContent = `${pct}%`;
+            const bar = document.getElementById('progress-bar');
+            bar.style.width = `${pct}%`;
+            if (m.mf >= 6.0) {
+                bar.className = 'h-full rounded-full bg-emerald-400 transition-all duration-300';
+            } else if (m.mf >= 4.0) {
+                bar.className = 'h-full rounded-full bg-amber-400 transition-all duration-300';
+            } else {
+                bar.className = 'h-full rounded-full bg-rose-500 transition-all duration-300';
+            }
+
+            // Composição detalhada
+            document.getElementById('weight-ni1-label').textContent = `(${Math.round(subject.miWeights.ni1 * 100)}%)`;
+            document.getElementById('weight-ni2-label').textContent = `(${Math.round(subject.miWeights.ni2 * 100)}%)`;
+            document.getElementById('contrib-ni1').textContent = formatBR(m.contribNi1);
+            document.getElementById('contrib-ni2').textContent = formatBR(m.contribNi2);
+            document.getElementById('contrib-partic').textContent = `+ ${formatBR(m.partic)}`;
+            document.getElementById('summary-mi').textContent = formatBR(m.mi);
+
+            const summaryAf = document.getElementById('summary-af');
+            if (m.mi >= 6.0) {
+                summaryAf.textContent = 'Dispensado (MI ≥ 6,00)';
+                summaryAf.className = 'font-medium text-emerald-600';
+            } else if (m.usedAF) {
+                summaryAf.textContent = `${formatBR(m.afVal)} → MF = (${formatBR(m.mi)} + ${formatBR(m.afVal)}) / 2`;
+                summaryAf.className = 'font-semibold text-slate-800';
+            } else {
+                const afNeeded = Math.max(0, 12.0 - m.mi);
+                summaryAf.textContent = afNeeded <= 10
+                    ? `Precisa de ${formatBR(afNeeded)} na AF`
+                    : `Inviável só com AF (${formatBR(afNeeded)})`;
+                summaryAf.className = 'font-medium text-amber-700';
+            }
+
+            // Atualiza os badges dos cards superiores e o resumo geral
+            renderSubjectsSelector();
+            renderAllSubjectsSummary();
+            lucide.createIcons();
+        }
+
+        // Renderiza a tabela compacta de resumo geral das 7 disciplinas
+        function renderAllSubjectsSummary() {
+            const container = document.getElementById('all-subjects-summary');
+            container.innerHTML = '';
+
+            SUBJECTS_CONFIG.forEach(sub => {
+                const activeTarget = state.targetField[sub.id] || null;
+                const calcGrades = { ...state.grades[sub.id] };
+                if (activeTarget) calcGrades[activeTarget] = '0';
+                const m = calculateSubjectMetrics(sub, calcGrades);
+
+                let statusDot = 'bg-slate-300';
+                let scoreText = '—';
+                let scoreClass = 'text-slate-400';
+
+                if (m.anyEntered) {
+                    scoreText = formatBR(m.mf);
+                    if (m.mf >= 6.0) {
+                        statusDot = 'bg-emerald-500';
+                        scoreClass = 'text-emerald-700 font-bold';
+                    } else {
+                        statusDot = 'bg-amber-500';
+                        scoreClass = 'text-amber-700 font-bold';
+                    }
+                }
+
+                const row = document.createElement('button');
+                row.type = 'button';
+                row.onclick = () => selectSubject(sub.id);
+                row.className = `w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs transition ${
+                    sub.id === state.selectedSubjectId
+                        ? 'bg-slate-100 font-semibold text-slate-900'
+                        : 'hover:bg-slate-50 text-slate-600'
+                }`;
+
+                row.innerHTML = `
+                    <span class="flex items-center gap-2 truncate pr-2">
+                        <span class="w-2 h-2 rounded-full ${statusDot} shrink-0"></span>
+                        <span class="truncate">${sub.shortName}</span>
+                    </span>
+                    <span class="${scoreClass} shrink-0">${scoreText}</span>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // Renderização completa
+        function renderAll() {
+            renderSelectedSubjectForm();
+            updateDynamicCalculations();
+        }
+
+        // Controle do Modal de Limpeza
+        let pendingResetScope = null;
+
+        function openResetModal(scope) {
+            pendingResetScope = scope;
+            const modal = document.getElementById('reset-modal');
+            const title = document.getElementById('modal-title');
+            const desc = document.getElementById('modal-description');
+            const confirmBtn = document.getElementById('confirm-reset-btn');
+
+            if (scope === 'current') {
+                const sub = SUBJECTS_CONFIG.find(s => s.id === state.selectedSubjectId);
+                title.textContent = `Limpar notas de ${sub.shortName}?`;
+                desc.textContent = 'Todas as notas digitadas e metas selecionadas apenas desta disciplina serão apagadas.';
+            } else {
+                title.textContent = 'Limpar todas as disciplinas?';
+                desc.textContent = 'Todas as notas preenchidas em todas as 7 disciplinas serão apagadas e voltarão a ficar em branco.';
+            }
+
+            confirmBtn.onclick = executeReset;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeResetModal() {
+            const modal = document.getElementById('reset-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            pendingResetScope = null;
+        }
+
+        function executeReset() {
+            if (pendingResetScope === 'current') {
+                const subId = state.selectedSubjectId;
+                state.grades[subId] = { A: '', B: '', C: '', F: '', G: '', H: '', Partic: '', AF: '' };
+                state.targetField[subId] = null;
+            } else if (pendingResetScope === 'all') {
+                state.grades = createEmptyGradesState();
+                state.targetField = {};
+            }
+            saveState();
+            closeResetModal();
+            renderAll();
+        }
+
+        // Inicialização ao carregar a página
+        window.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            renderAll();
+        });
+    </script>
+</body>
+</html>
