@@ -13,7 +13,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Ícones Lucide -->
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+    <!-- PDF.js para leitura local do boletim PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
         tailwind.config = {
             theme: {
                 extend: {
@@ -40,7 +45,6 @@
         html{scroll-padding-top:env(safe-area-inset-top,0px)}
         header.sticky{top:env(safe-area-inset-top,0px)}
         body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:#fff;z-index:40}
-        /* Ajustes personalizados para inputs numéricos e scroll suave */
         input[type="text"]::-webkit-inner-spin-button,
         input[type="text"]::-webkit-outer-spin-button {
             -webkit-appearance: none;
@@ -81,25 +85,54 @@
                 </div>
                 <div>
                     <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">Simulador de Notas &amp; Metas</h1>
-                    <p class="text-xs text-slate-500 font-medium">Engenharia da Computação • Critério de Aprovação: Média Final ≥ 6,00</p>
+                    <p id="header-subtitle" class="text-xs text-slate-500 font-medium">Engenharia da Computação • Critério de Aprovação: Média Final ≥ 6,00</p>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 sm:gap-3">
-                <span id="save-indicator" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg transition-opacity duration-300 opacity-0">
-                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Salvo no navegador
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <span id="save-indicator" class="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg transition-opacity duration-300 opacity-0">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Salvo
                 </span>
-                <button onclick="openResetModal('current')" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 active:bg-slate-100 transition">
-                    <i data-lucide="rotate-ccw" class="w-4 h-4 text-slate-500"></i>
-                    <span>Limpar Disciplina</span>
+
+                <!-- Botão Importar Boletim PDF -->
+                <button onclick="openUploadModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white bg-mack-600 rounded-lg hover:bg-mack-700 active:bg-mack-800 shadow-xs transition cursor-pointer">
+                    <i data-lucide="file-up" class="w-4 h-4"></i>
+                    <span>Importar Boletim (PDF)</span>
                 </button>
-                <button onclick="openResetModal('all')" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 active:bg-rose-200 transition">
+
+                <button onclick="openResetModal('current')" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 active:bg-slate-100 transition cursor-pointer">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4 text-slate-500"></i>
+                    <span class="hidden sm:inline">Limpar Disciplina</span>
+                </button>
+                <button onclick="openResetModal('all')" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 active:bg-rose-200 transition cursor-pointer">
                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                     <span class="hidden sm:inline">Limpar Tudo</span>
                 </button>
             </div>
         </div>
     </header>
+
+    <!-- Banner Informativo do Aluno (exibido após importar PDF) -->
+    <div id="student-info-bar" class="hidden bg-slate-900 text-slate-200 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-3 flex-wrap">
+                <span class="inline-flex items-center gap-1.5 font-semibold text-white">
+                    <i data-lucide="user-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <span id="student-name-display">Aluno</span>
+                </span>
+                <span class="text-slate-500">•</span>
+                <span id="student-ra-display" class="text-slate-300">RA: —</span>
+                <span class="text-slate-500 hidden sm:inline">•</span>
+                <span id="student-period-display" class="text-slate-300 hidden sm:inline">Período: —</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="import-timestamp-display" class="text-slate-400 text-[11px]">Boletim importado</span>
+                <button onclick="openUploadModal()" class="text-amber-400 hover:text-amber-300 font-semibold underline ml-2 cursor-pointer">
+                    Atualizar PDF
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Conteúdo Principal -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -109,7 +142,7 @@
             <div class="flex items-center justify-between mb-3">
                 <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                     <i data-lucide="book-open" class="w-4 h-4 text-mack-600"></i>
-                    Selecione a Disciplina (7 Componentes)
+                    Selecione a Disciplina (<span id="subjects-count-label">7</span> Componentes)
                 </h2>
                 <span class="text-xs text-slate-400 hidden sm:inline">Clique em uma disciplina para editar ou simular</span>
             </div>
@@ -129,9 +162,12 @@
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                         <div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <span id="subject-code" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">CÓDIGO</span>
                                 <span id="subject-formula-badge" class="text-xs font-medium px-2 py-0.5 rounded bg-mack-50 text-mack-700 border border-mack-100">Fórmula</span>
+                                <span id="subject-absences-badge" class="hidden text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                    Faltas: 0 / 0
+                                </span>
                             </div>
                             <h3 id="subject-title" class="text-lg sm:text-xl font-bold text-slate-900 mt-1.5">Nome da Disciplina</h3>
                         </div>
@@ -143,7 +179,7 @@
                                 <span class="font-semibold text-blue-900 block">Alvo de Cálculo (Média ≥ 6,0):</span>
                                 <span id="target-status-label" class="text-blue-700">Nenhum campo selecionado</span>
                             </div>
-                            <button id="clear-target-btn" onclick="setTargetField(null)" class="hidden ml-2 text-xs font-semibold text-blue-700 hover:text-blue-900 underline">
+                            <button id="clear-target-btn" onclick="setTargetField(null)" class="hidden ml-2 text-xs font-semibold text-blue-700 hover:text-blue-900 underline cursor-pointer">
                                 Desativar
                             </button>
                         </div>
@@ -157,7 +193,7 @@
                     <!-- Instrução rápida -->
                     <p class="text-xs text-slate-500 mt-4 flex items-center gap-1.5">
                         <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
-                        <span>Preencha as notas conhecidas (0 a 10) ou clique em <strong class="text-blue-600 font-semibold">"Calcular esta"</strong> em qualquer avaliação para descobrir a nota exata necessária para aprovação.</span>
+                        <span>Preencha as notas conhecidas (0 a 10), importe seu boletim em PDF ou clique em <strong class="text-blue-600 font-semibold">"Calcular esta"</strong> em qualquer avaliação para descobrir a nota exata necessária para aprovação.</span>
                     </p>
                 </div>
 
@@ -209,7 +245,7 @@
                             </div>
                         </div>
                         <div id="ni2-note" class="hidden mt-3 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
-                            <!-- Aviso específico (ex: Química Geral peso 0 em F) -->
+                            <!-- Aviso específico -->
                         </div>
                     </div>
 
@@ -321,7 +357,56 @@
         </div>
     </main>
 
-    <!-- Modal de Confirmação para Limpar Dados (Substitui confirm()) -->
+    <!-- Modal de Upload do Boletim (PDF) -->
+    <div id="upload-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 transform transition-all">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-mack-50 text-mack-600 border border-mack-100 flex items-center justify-center shrink-0">
+                        <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">Importar Mapa de Notas e Faltas</h3>
+                        <p class="text-xs text-slate-500">Envie o arquivo PDF oficial gerado no portal TIA / Mackenzie</p>
+                    </div>
+                </div>
+                <button onclick="closeUploadModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Área Dropzone -->
+            <div id="dropzone"
+                onclick="document.getElementById('pdf-file-input').click()"
+                ondragover="handleDragOver(event)"
+                ondragleave="handleDragLeave(event)"
+                ondrop="handleDrop(event)"
+                class="border-2 border-dashed border-slate-300 hover:border-mack-600 bg-slate-50 hover:bg-mack-50/30 rounded-2xl p-8 text-center transition cursor-pointer group">
+                <input type="file" id="pdf-file-input" accept="application/pdf,.pdf" class="hidden" onchange="handleFileSelect(event)">
+                
+                <div class="w-12 h-12 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center mx-auto mb-3 group-hover:scale-105 transition">
+                    <i data-lucide="upload-cloud" class="w-6 h-6 text-mack-600"></i>
+                </div>
+                <p class="text-sm font-semibold text-slate-800">Clique para selecionar ou arraste o PDF aqui</p>
+                <p class="text-xs text-slate-500 mt-1">Ex.: <span class="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">Mapa_de_Notas_e_Faltas.pdf</span></p>
+            </div>
+
+            <!-- Status / Feedback do Processamento -->
+            <div id="upload-feedback" class="hidden mt-4 p-3.5 rounded-xl text-xs border"></div>
+
+            <div class="mt-5 flex items-center justify-between text-[11px] text-slate-400 pt-3 border-t border-slate-100">
+                <span class="flex items-center gap-1">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                    Processamento 100% local no seu navegador
+                </span>
+                <button onclick="closeUploadModal()" class="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition cursor-pointer">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação para Limpar Dados -->
     <div id="reset-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 transform transition-all">
             <div class="flex items-center gap-3 text-rose-600 mb-3">
@@ -334,10 +419,10 @@
                 Tem certeza que deseja apagar as notas preenchidas? Esta ação deixará os campos em branco novamente.
             </p>
             <div class="flex justify-end gap-2.5">
-                <button onclick="closeResetModal()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                <button onclick="closeResetModal()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer">
                     Cancelar
                 </button>
-                <button id="confirm-reset-btn" class="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition">
+                <button id="confirm-reset-btn" class="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition cursor-pointer">
                     Sim, limpar notas
                 </button>
             </div>
@@ -345,8 +430,8 @@
     </div>
 
     <script>
-        // Definição exata das disciplinas e fórmulas conforme o Mapa de Notas e Faltas
-        const SUBJECTS_CONFIG = [
+        // Definição padrão das disciplinas e fórmulas conforme o Mapa de Notas e Faltas
+        const DEFAULT_SUBJECTS_CONFIG = [
             {
                 id: 'algoritmos',
                 code: '6345105',
@@ -425,7 +510,7 @@
                 shortName: 'Química Geral',
                 name: 'QUÍMICA GERAL',
                 ni1Weights: { A: 0.7, B: 0.2, C: 0.1 },
-                ni2Weights: { G: 0.8, H: 0.2 }, // F possui peso 0 conforme boletim
+                ni2Weights: { G: 0.8, H: 0.2 },
                 miWeights: { ni1: 0.4, ni2: 0.6 },
                 ni1FormulaText: 'NI1 = (A×70 + B×20 + C×10) / 100',
                 ni2FormulaText: 'NI2 = (F×0 + G×80 + H×20) / 100',
@@ -434,35 +519,41 @@
             }
         ];
 
-        const STORAGE_KEY = 'mackenzie_engcomp_grade_simulator_v1';
+        let SUBJECTS_CONFIG = JSON.parse(JSON.stringify(DEFAULT_SUBJECTS_CONFIG));
+        const STORAGE_KEY = 'mackenzie_engcomp_grade_simulator_v2';
 
-        // Estado da aplicação (inicia 100% vazio sem notas prévias)
         let state = {
             selectedSubjectId: SUBJECTS_CONFIG[0].id,
-            grades: {},      // { [subjectId]: { A: '', B: '', ... } }
-            targetField: {}  // { [subjectId]: 'G' | null }
+            grades: {},
+            targetField: {},
+            studentInfo: null, // { name, ra, period, course, importedAt }
+            absences: {},      // { [subjectId]: { count, limit, pct, totalClasses } }
+            customSubjects: null
         };
 
-        // Inicializa estrutura vazia para todas as disciplinas
         function createEmptyGradesState() {
             const empty = {};
             SUBJECTS_CONFIG.forEach(sub => {
                 empty[sub.id] = {
-                    A: '', B: '', C: '',
-                    F: '', G: '', H: '',
+                    A: '', B: '', C: '', D: '', E: '',
+                    F: '', G: '', H: '', I: '', J: '',
                     Partic: '', AF: ''
                 };
             });
             return empty;
         }
 
-        // Carrega dados salvos no localStorage (se o usuário já tiver simulado antes)
         function loadState() {
             state.grades = createEmptyGradesState();
             try {
-                const saved = localStorage.getItem(STORAGE_KEY);
+                const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('mackenzie_engcomp_grade_simulator_v1');
                 if (saved) {
                     const parsed = JSON.parse(saved);
+                    if (parsed.customSubjects && Array.isArray(parsed.customSubjects) && parsed.customSubjects.length > 0) {
+                        SUBJECTS_CONFIG = parsed.customSubjects;
+                        state.customSubjects = parsed.customSubjects;
+                        state.grades = createEmptyGradesState();
+                    }
                     if (parsed.selectedSubjectId && SUBJECTS_CONFIG.some(s => s.id === parsed.selectedSubjectId)) {
                         state.selectedSubjectId = parsed.selectedSubjectId;
                     }
@@ -473,16 +564,15 @@
                             }
                         });
                     }
-                    if (parsed.targetField) {
-                        state.targetField = parsed.targetField;
-                    }
+                    if (parsed.targetField) state.targetField = parsed.targetField;
+                    if (parsed.studentInfo) state.studentInfo = parsed.studentInfo;
+                    if (parsed.absences) state.absences = parsed.absences;
                 }
             } catch (e) {
                 console.warn('Não foi possível carregar dados salvos:', e);
             }
         }
 
-        // Salva no localStorage e exibe feedback discreto
         function saveState() {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -499,7 +589,6 @@
             }
         }
 
-        // Converte string de entrada (aceitando vírgula ou ponto) para número válido entre 0 e 10
         function parseGrade(val) {
             if (val === null || val === undefined || String(val).trim() === '') return null;
             const normalized = String(val).replace(',', '.').trim();
@@ -508,52 +597,42 @@
             return Math.max(0, Math.min(10, num));
         }
 
-        // Formata número para exibição brasileira (ex: 7,45)
         function formatBR(num) {
             if (num === null || num === undefined || isNaN(num)) return '0,00';
             return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        // Verifica se o usuário preencheu ao menos uma nota na disciplina
         function hasAnyGrade(subId, overrideValues = null) {
             const vals = overrideValues || state.grades[subId] || {};
             return Object.values(vals).some(v => parseGrade(v) !== null);
         }
 
-        // Calcula NI1, NI2, MI, MF e Status para uma disciplina
         function calculateSubjectMetrics(subject, customValues = null) {
             const raw = customValues || state.grades[subject.id] || {};
             
-            // NI1
             let ni1 = 0;
             Object.entries(subject.ni1Weights).forEach(([key, weight]) => {
                 const val = parseGrade(raw[key]) ?? 0;
                 ni1 += val * weight;
             });
 
-            // NI2
             let ni2 = 0;
             Object.entries(subject.ni2Weights).forEach(([key, weight]) => {
                 const val = parseGrade(raw[key]) ?? 0;
                 ni2 += val * weight;
             });
 
-            // Participação (PI / Partic)
             const partic = parseGrade(raw.Partic) ?? 0;
 
-            // MI
             const contribNi1 = ni1 * subject.miWeights.ni1;
             const contribNi2 = ni2 * subject.miWeights.ni2;
             const miRaw = contribNi1 + contribNi2 + partic;
-            const mi = Math.round(miRaw * 10 + 1e-9) / 10; // o boletim arredonda a MI para 1 casa
+            const mi = Math.round(miRaw * 10 + 1e-9) / 10;
 
-            // AF e MF
             const afVal = parseGrade(raw.AF);
             let mf = mi;
             let usedAF = false;
 
-            // Regra: Se MI >= 6.0 e não há AF simulada/lançada, MF = MI.
-            // Se MI < 6.0 e há AF preenchida (ou se AF foi explicitamente preenchida quando MI < 6), MF = (MI + AF) / 2.
             if (mi < 6.0 && afVal !== null) {
                 mf = (mi + afVal) / 2;
                 usedAF = true;
@@ -562,9 +641,8 @@
                 usedAF = false;
             }
 
-            // Determina status acadêmico
             const anyEntered = hasAnyGrade(subject.id, raw);
-            let status = 'pending'; // pending, approved_direct, approved_af, exam_needed, failed
+            let status = 'pending';
 
             if (!anyEntered) {
                 status = 'pending';
@@ -577,47 +655,30 @@
             }
 
             return {
-                ni1,
-                ni2,
-                contribNi1,
-                contribNi2,
-                partic,
-                mi,
-                miRaw,
-                afVal,
-                mf,
-                usedAF,
-                status,
-                anyEntered
+                ni1, ni2, contribNi1, contribNi2, partic,
+                mi, miRaw, afVal, mf, usedAF, status, anyEntered
             };
         }
 
-        // Calcula a nota exata necessária no campo alvo selecionado para que MF >= 6,00
         function calculateRequiredTargetGrade(subject, targetKey) {
             if (!targetKey) return null;
 
             const currentGrades = { ...state.grades[subject.id] };
-            // Zera temporariamente o campo alvo para descobrir a base atual
             const testGradesZero = { ...currentGrades, [targetKey]: '0' };
             const baseMetrics = calculateSubjectMetrics(subject, testGradesZero);
 
             const targetScore = 6.0;
             let required = 0;
-            let mode = 'MI'; // 'MI' (direto) ou 'AF' (via exame final)
+            let mode = 'MI';
 
             if (targetKey === 'AF') {
                 mode = 'AF';
-                // Precisa que (MI + AF) / 2 >= 6.0  =>  AF >= 12.0 - MI
                 if (baseMetrics.mi >= 6.0) {
-                    required = 0; // Já passou direto sem AF!
+                    required = 0;
                 } else {
                     required = (targetScore * 2) - baseMetrics.mi;
                 }
             } else {
-                // O alvo é A, B, C, F, G, H ou Partic.
-                // Primeiro verificamos quanto precisa para atingir MI >= 6,00 (aprovação direta).
-                // Se o usuário já preencheu AF e quer saber quanto precisa para (MI + AF)/2 >= 6,00,
-                // priorizamos mostrar a meta para aprovação direta (MI >= 6,00), mas também informamos se AF ajuda.
                 let factorInMI = 0;
                 if (subject.ni1Weights[targetKey] !== undefined) {
                     factorInMI = subject.ni1Weights[targetKey] * subject.miWeights.ni1;
@@ -628,12 +689,11 @@
                 }
 
                 if (factorInMI > 0) {
-                    const missingMI = 5.95 - baseMetrics.miRaw; // MI arredondada para 6,0 a partir de 5,95
+                    const missingMI = 5.95 - baseMetrics.miRaw;
                     required = missingMI / factorInMI;
                 }
             }
 
-            // Corrige pequenas imprecisões de ponto flutuante (ex: -0.0000000001)
             if (Math.abs(required) < 1e-9) required = 0;
 
             return {
@@ -644,7 +704,6 @@
             };
         }
 
-        // Alterna o campo selecionado como alvo de cálculo
         function setTargetField(fieldKey) {
             const subId = state.selectedSubjectId;
             if (state.targetField[subId] === fieldKey) {
@@ -656,30 +715,22 @@
             renderAll();
         }
 
-        // Atualiza nota digitada pelo usuário
         function handleGradeInput(fieldKey, rawValue) {
             const subId = state.selectedSubjectId;
-            // Permite apenas dígitos, ponto e vírgula
             let sanitized = rawValue.replace(/[^0-9.,]/g, '');
-            
-            // Garante apenas um separador decimal
             const parts = sanitized.split(/[.,]/);
             if (parts.length > 2) {
                 sanitized = parts[0] + ',' + parts.slice(1).join('');
             }
-
-            // Limita o valor máximo a 10 se o número digitado ultrapassar 10
             const numericCheck = parseFloat(sanitized.replace(',', '.'));
             if (!isNaN(numericCheck) && numericCheck > 10) {
                 sanitized = '10';
             }
-
             state.grades[subId][fieldKey] = sanitized;
             saveState();
             updateDynamicCalculations();
         }
 
-        // Formata o campo ao perder o foco (blur) se válido
         function handleGradeBlur(fieldKey) {
             const subId = state.selectedSubjectId;
             const raw = state.grades[subId][fieldKey];
@@ -693,16 +744,477 @@
             renderAll();
         }
 
-        // Seleciona outra disciplina
         function selectSubject(subId) {
             state.selectedSubjectId = subId;
             saveState();
             renderAll();
         }
 
-        // Renderiza os cards superiores das 7 disciplinas
+        // =========================================================================
+        // IMPORTAÇÃO E PARSER DO BOLETIM EM PDF (MACKENZIE - MAPA DE NOTAS E FALTAS)
+        // =========================================================================
+
+        function openUploadModal() {
+            const modal = document.getElementById('upload-modal');
+            const feedback = document.getElementById('upload-feedback');
+            feedback.classList.add('hidden');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeUploadModal() {
+            const modal = document.getElementById('upload-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('dropzone').classList.add('border-mack-600', 'bg-mack-50/50');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('dropzone').classList.remove('border-mack-600', 'bg-mack-50/50');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('dropzone').classList.remove('border-mack-600', 'bg-mack-50/50');
+            const files = e.dataTransfer?.files;
+            if (files && files.length > 0) {
+                processBoletimPDF(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target?.files;
+            if (files && files.length > 0) {
+                processBoletimPDF(files[0]);
+            }
+            e.target.value = '';
+        }
+
+        function showUploadFeedback(type, htmlMessage) {
+            const el = document.getElementById('upload-feedback');
+            el.classList.remove('hidden');
+            if (type === 'loading') {
+                el.className = 'mt-4 p-3.5 rounded-xl text-xs border bg-blue-50 border-blue-200 text-blue-800 flex items-center gap-2';
+            } else if (type === 'success') {
+                el.className = 'mt-4 p-3.5 rounded-xl text-xs border bg-emerald-50 border-emerald-200 text-emerald-900';
+            } else {
+                el.className = 'mt-4 p-3.5 rounded-xl text-xs border bg-rose-50 border-rose-200 text-rose-900';
+            }
+            el.innerHTML = htmlMessage;
+        }
+
+        function normalizeStr(str) {
+            return String(str || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toUpperCase()
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function makeShortName(fullName) {
+            const map = {
+                'ALGORITMOS E PROGRAMACAO I': 'Algoritmos I',
+                'CIENCIA, TECNOLOGIA E SOCIEDADE NAS ENGENHARIAS': 'Ciência, Tec. e Soc.',
+                'CIENCIAS DO AMBIENTE': 'Ciências do Ambiente',
+                'ETICA E CIDADANIA': 'Ética e Cidadania',
+                'FISICA GERAL E EXPERIMENTAL I': 'Física Geral I',
+                'FUNDAMENTOS DE MATEMATICA': 'Fund. de Matemática',
+                'QUIMICA GERAL': 'Química Geral'
+            };
+            const norm = normalizeStr(fullName);
+            if (map[norm]) return map[norm];
+            return fullName.length > 22 ? fullName.slice(0, 20) + '…' : fullName;
+        }
+
+        function parseFormulaWeights(formulaStr, allowedKeys) {
+            // Ex: "NI1=(A*6+B*2+C*2+D*0+E*0)/10" ou "MI=(NI1*40+NI2*60)/100+ Partic"
+            const weights = {};
+            if (!formulaStr) return weights;
+            const divMatch = formulaStr.match(/\/\s*(\d+)/);
+            const divisor = divMatch ? parseFloat(divMatch[1]) : 10;
+
+            allowedKeys.forEach(key => {
+                const regex = new RegExp(`\\b${key}\\s*\\*\\s*(\\d+(?:[.,]\\d+)?)`, 'i');
+                const m = formulaStr.match(regex);
+                if (m) {
+                    const rawW = parseFloat(m[1].replace(',', '.'));
+                    if (rawW > 0) {
+                        weights[key] = rawW / divisor;
+                    }
+                }
+            });
+            return weights;
+        }
+
+        async function processBoletimPDF(file) {
+            if (!file || file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+                showUploadFeedback('error', '<strong>Arquivo inválido:</strong> Selecione um arquivo no formato PDF.');
+                return;
+            }
+
+            if (!window.pdfjsLib) {
+                showUploadFeedback('error', '<strong>Erro de biblioteca:</strong> O leitor de PDF não pôde ser carregado. Verifique sua conexão.');
+                return;
+            }
+
+            showUploadFeedback('loading', '<span class="animate-spin inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></span> Lendo coordenadas e extraindo notas do boletim...');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+                let allItems = [];
+                for (let p = 1; p <= pdf.numPages; p++) {
+                    const page = await pdf.getPage(p);
+                    const textContent = await page.getTextContent();
+                    const viewport = page.getViewport({ scale: 1.0 });
+
+                    textContent.items.forEach(item => {
+                        const str = item.str.trim();
+                        if (!str) return;
+                        // Coordenada Y invertida (topo = 0) para ordenar naturalmente de cima para baixo
+                        const x = item.transform[4];
+                        const y = (p - 1) * 1000 + (viewport.height - item.transform[5]);
+                        allItems.push({ str, x, y, page: p });
+                    });
+                }
+
+                // Agrupa itens por linha (tolerância de 4px no eixo Y)
+                allItems.sort((a, b) => a.y - b.y || a.x - b.x);
+                const rows = [];
+                allItems.forEach(item => {
+                    const existingRow = rows.find(r => Math.abs(r.y - item.y) <= 4.5);
+                    if (existingRow) {
+                        existingRow.items.push(item);
+                    } else {
+                        rows.push({ y: item.y, items: [item] });
+                    }
+                });
+                rows.forEach(r => r.items.sort((a, b) => a.x - b.x));
+
+                // 1. Extrai metadados do aluno (Nome, RA, Curso, Ano/Semestre)
+                let studentName = '';
+                let studentRA = '';
+                let studentPeriod = '';
+                let studentCourse = '';
+
+                rows.forEach(r => {
+                    const lineText = r.items.map(i => i.str).join(' ');
+                    const nomeMatch = lineText.match(/NOME:\s*([A-ZÀ-Ú\s]+?)(?=\s+CURSO|\s+RA:|$)/i);
+                    if (nomeMatch && !studentName) studentName = nomeMatch[1].trim();
+
+                    const raMatch = lineText.match(/RA:\s*(\d+)/i);
+                    if (raMatch && !studentRA) studentRA = raMatch[1].trim();
+
+                    const anoMatch = lineText.match(/A[NΝ]O:\s*(\d{4}\/\d)/i);
+                    if (anoMatch && !studentPeriod) studentPeriod = anoMatch[1].trim();
+
+                    const cursoMatch = lineText.match(/CURSO\s*-\s*HABILITACAO:\s*(.+?)(?=\s+A[NΝ]O:|$)/i);
+                    if (cursoMatch && !studentCourse) studentCourse = cursoMatch[1].trim();
+                });
+
+                // 2. Localiza cabeçalho das colunas de notas (A, B, C, D, E, MÉDIA, F, G, H, I, J, MÉDIA, SUB, PI, NP, MI, AF, MÉDIA FINAL)
+                let colPositions = {};
+                let headerRowY = -1;
+
+                for (const r of rows) {
+                    const tokens = r.items.map(i => normalizeStr(i.str));
+                    if (tokens.includes('A') && tokens.includes('B') && tokens.includes('F') && tokens.includes('G')) {
+                        headerRowY = r.y;
+                        // Mapeia posição X exata de cada letra/coluna
+                        r.items.forEach(it => {
+                            const key = normalizeStr(it.str);
+                            if (['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].includes(key)) {
+                                colPositions[key] = it.x;
+                            }
+                        });
+                        break;
+                    }
+                }
+
+                // Procura também as colunas PI, MI, AF na linha imediatamente acima do cabeçalho A..J
+                if (headerRowY > 0) {
+                    rows.forEach(r => {
+                        if (Math.abs(r.y - headerRowY) <= 22) {
+                            r.items.forEach(it => {
+                                const key = normalizeStr(it.str);
+                                if (key === 'PI') colPositions['PI'] = it.x;
+                                if (key === 'MI') colPositions['MI'] = it.x;
+                                if (key === 'AF') colPositions['AF'] = it.x;
+                            });
+                        }
+                    });
+                }
+
+                // 3. Extrai fórmulas da seção PARCIAIS / FINAIS
+                const parsedFormulas = {}; // { [normSubjectName]: { ni1, ni2, mi } }
+                rows.forEach(r => {
+                    const lineText = r.items.map(i => i.str).join(' ');
+                    if (lineText.includes('NI1=') && lineText.includes('NI2=')) {
+                        // Identifica a qual disciplina pertence esta linha
+                        const firstPart = r.items.filter(i => !i.str.includes('NI1=') && !i.str.includes('NI2=') && !i.str.includes('MI=')).map(i => i.str).join(' ');
+                        const normName = normalizeStr(firstPart);
+                        const ni1Match = lineText.match(/NI1\s*=\s*\([^)]+\)\s*\/\s*\d+/i);
+                        const ni2Match = lineText.match(/NI2\s*=\s*\([^)]+\)\s*\/\s*\d+/i);
+                        const miMatch = lineText.match(/MI\s*=\s*\([^)]+\)\s*\/\s*\d+(?:\s*\+\s*Partic)?/i);
+
+                        if (normName) {
+                            parsedFormulas[normName] = {
+                                ni1: ni1Match ? ni1Match[0] : '',
+                                ni2: ni2Match ? ni2Match[0] : '',
+                                mi: miMatch ? miMatch[0] : ''
+                            };
+                        }
+                    }
+                });
+
+                // 4. Extrai faltas da seção FALTAS
+                const parsedAbsences = {}; // { [code]: { count, pct, limit, totalClasses } }
+                rows.forEach(r => {
+                    const lineText = r.items.map(i => i.str).join(' ');
+                    const codeMatch = lineText.match(/^(\d{7})\s*-/);
+                    if (codeMatch) {
+                        const code = codeMatch[1];
+                        // Números na linha após o nome da disciplina
+                        const nums = r.items
+                            .filter(i => i.x > 280)
+                            .map(i => i.str.trim());
+                        // Padrão típico: [faltas?, %faltas, limite, exclusivo, totalAulas]
+                        // Se faltas for vazio, o primeiro número é "0,00" (com vírgula)
+                        let count = 0;
+                        let pct = '0,00';
+                        let limit = 0;
+                        let totalClasses = 0;
+
+                        if (nums.length >= 4) {
+                            if (nums[0].includes(',')) {
+                                // Faltas acumuladas estava em branco -> 0
+                                count = 0;
+                                pct = nums[0];
+                                limit = parseInt(nums[1], 10) || 0;
+                                totalClasses = parseInt(nums[nums.length - 1], 10) || 0;
+                            } else {
+                                count = parseInt(nums[0], 10) || 0;
+                                pct = nums[1] || '0,00';
+                                limit = parseInt(nums[2], 10) || 0;
+                                totalClasses = parseInt(nums[nums.length - 1], 10) || 0;
+                            }
+                            parsedAbsences[code] = { count, pct, limit, totalClasses };
+                        }
+                    }
+                });
+
+                // 5. Extrai as notas de cada disciplina comparando posição X com o cabeçalho
+                const extractedSubjects = [];
+                const targetCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'PI', 'AF'];
+
+                // Filtra linhas que estão na tabela superior de notas (entre headerRowY e a seção DISCIPLINA/PARCIAIS)
+                const parciaisRow = rows.find(r => r.items.some(i => normalizeStr(i.str) === 'PARCIAIS'));
+                const maxTableY = parciaisRow ? parciaisRow.y : 999999;
+
+                rows.forEach(r => {
+                    if (headerRowY > 0 && (r.y <= headerRowY + 4 || r.y >= maxTableY - 4)) return;
+
+                    // Separa texto do nome da disciplina (lado esquerdo, x < 240) e números (x >= 240)
+                    const nameTokens = r.items.filter(i => i.x < 245 && !/^\d+[.,]\d+$/.test(i.str));
+                    const numericTokens = r.items.filter(i => i.x >= 245 && /^\d+[.,]\d+$/.test(i.str));
+
+                    if (nameTokens.length === 0 || numericTokens.length === 0) return;
+
+                    const rawSubjectName = nameTokens.map(i => i.str).join(' ').trim();
+                    const normSubjectName = normalizeStr(rawSubjectName);
+
+                    // Ignora cabeçalhos ou rodapés
+                    if (normSubjectName.includes('COMPONENTES') || normSubjectName.includes('NOTAS PARCIAIS')) return;
+
+                    // Mapeia cada número para a coluna mais próxima no eixo X
+                    const mappedGrades = {
+                        A: '', B: '', C: '', D: '', E: '',
+                        F: '', G: '', H: '', I: '', J: '',
+                        Partic: '', AF: ''
+                    };
+
+                    numericTokens.forEach(tok => {
+                        let bestCol = null;
+                        let minDist = 18; // tolerância horizontal máxima em pontos PDF
+
+                        targetCols.forEach(colKey => {
+                            if (colPositions[colKey] !== undefined) {
+                                const dist = Math.abs(tok.x - colPositions[colKey]);
+                                if (dist < minDist) {
+                                    minDist = dist;
+                                    bestCol = colKey;
+                                }
+                            }
+                        });
+
+                        if (bestCol) {
+                            const valNum = parseFloat(tok.str.replace(',', '.'));
+                            // Se for PI (Participação) com valor 0,00 no boletim, só preenche se > 0 para manter o campo limpo
+                            if (bestCol === 'PI') {
+                                if (valNum > 0) {
+                                    mappedGrades.Partic = valNum.toFixed(2).replace('.', ',');
+                                }
+                            } else {
+                                mappedGrades[bestCol] = valNum.toFixed(2).replace('.', ',');
+                            }
+                        }
+                    });
+
+                    extractedSubjects.push({
+                        rawName: rawSubjectName,
+                        normName: normSubjectName,
+                        grades: mappedGrades
+                    });
+                });
+
+                if (extractedSubjects.length === 0) {
+                    showUploadFeedback('error', '<strong>Não foi possível identificar as notas:</strong> Certifique-se de que este PDF é o <em>Mapa de Notas e Faltas</em> oficial do Mackenzie.');
+                    return;
+                }
+
+                // 6. Sincroniza disciplinas extraídas com SUBJECTS_CONFIG
+                const updatedConfigs = [];
+                const newGradesState = {};
+                const newAbsencesState = {};
+
+                extractedSubjects.forEach((ext, idx) => {
+                    // Tenta encontrar disciplina correspondente na configuração padrão
+                    let matched = DEFAULT_SUBJECTS_CONFIG.find(def =>
+                        normalizeStr(def.name) === ext.normName ||
+                        ext.normName.includes(normalizeStr(def.name)) ||
+                        normalizeStr(def.name).includes(ext.normName)
+                    );
+
+                    // Tenta descobrir o código de 7 dígitos pela tabela de faltas
+                    let matchedCode = matched ? matched.code : String(6345105 + idx);
+                    rows.forEach(r => {
+                        const line = normalizeStr(r.items.map(i => i.str).join(' '));
+                        const m = line.match(/(\d{7})\s*-\s*(.+)/);
+                        if (m && (m[2].includes(ext.normName) || ext.normName.includes(m[2].trim()))) {
+                            matchedCode = m[1];
+                        }
+                    });
+
+                    const subId = matched ? matched.id : `sub_${matchedCode}_${idx}`;
+                    const fData = parsedFormulas[ext.normName];
+
+                    let ni1Weights = matched ? { ...matched.ni1Weights } : { A: 0.5, B: 0.5 };
+                    let ni2Weights = matched ? { ...matched.ni2Weights } : { F: 0.5, G: 0.5 };
+                    let miWeights = matched ? { ...matched.miWeights } : { ni1: 0.4, ni2: 0.6 };
+
+                    if (fData && fData.ni1) {
+                        const w1 = parseFormulaWeights(fData.ni1, ['A', 'B', 'C', 'D', 'E']);
+                        if (Object.keys(w1).length > 0) ni1Weights = w1;
+                    }
+                    if (fData && fData.ni2) {
+                        const w2 = parseFormulaWeights(fData.ni2, ['F', 'G', 'H', 'I', 'J']);
+                        if (Object.keys(w2).length > 0) ni2Weights = w2;
+                    }
+                    if (fData && fData.mi) {
+                        const wMi = parseFormulaWeights(fData.mi, ['NI1', 'NI2']);
+                        if (wMi.NI1 && wMi.NI2) {
+                            miWeights = { ni1: wMi.NI1, ni2: wMi.NI2 };
+                        }
+                    }
+
+                    const configObj = {
+                        id: subId,
+                        code: matchedCode,
+                        shortName: matched ? matched.shortName : makeShortName(ext.rawName),
+                        name: ext.rawName,
+                        ni1Weights,
+                        ni2Weights,
+                        miWeights,
+                        ni1FormulaText: fData?.ni1 || matched?.ni1FormulaText || 'NI1 Ponderada',
+                        ni2FormulaText: fData?.ni2 || matched?.ni2FormulaText || 'NI2 Ponderada',
+                        ni2Note: matched?.ni2Note || null,
+                        miFormulaText: fData?.mi || matched?.miFormulaText || 'MI = NI1 + NI2 + Partic'
+                    };
+
+                    updatedConfigs.push(configObj);
+                    newGradesState[subId] = ext.grades;
+
+                    if (parsedAbsences[matchedCode]) {
+                        newAbsencesState[subId] = parsedAbsences[matchedCode];
+                    }
+                });
+
+                // Atualiza estado global
+                SUBJECTS_CONFIG = updatedConfigs;
+                state.customSubjects = updatedConfigs;
+                state.grades = newGradesState;
+                state.absences = newAbsencesState;
+                state.targetField = {};
+                if (!SUBJECTS_CONFIG.some(s => s.id === state.selectedSubjectId)) {
+                    state.selectedSubjectId = SUBJECTS_CONFIG[0].id;
+                }
+
+                state.studentInfo = {
+                    name: studentName || 'Estudante',
+                    ra: studentRA || '',
+                    period: studentPeriod || '',
+                    course: studentCourse || 'Engenharia da Computação',
+                    importedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                };
+
+                saveState();
+                renderAll();
+
+                showUploadFeedback('success', `
+                    <div class="flex items-start gap-2.5">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+                        <div>
+                            <p class="font-bold text-emerald-950">Boletim importado com sucesso!</p>
+                            <p class="text-emerald-800 mt-0.5"><strong>${extractedSubjects.length} disciplinas</strong> carregadas${studentName ? ` para <strong>${studentName}</strong>` : ''}.</p>
+                        </div>
+                    </div>
+                `);
+                lucide.createIcons();
+
+                setTimeout(() => {
+                    closeUploadModal();
+                }, 1100);
+
+            } catch (err) {
+                console.error('Erro ao processar PDF:', err);
+                showUploadFeedback('error', `<strong>Erro ao ler o PDF:</strong> ${err.message || 'Arquivo corrompido ou protegido.'}`);
+            }
+        }
+
+        // =========================================================================
+        // RENDERIZAÇÃO DA INTERFACE
+        // =========================================================================
+
+        function renderStudentInfoBar() {
+            const bar = document.getElementById('student-info-bar');
+            if (!state.studentInfo) {
+                bar.classList.add('hidden');
+                return;
+            }
+            bar.classList.remove('hidden');
+            document.getElementById('student-name-display').textContent = state.studentInfo.name;
+            document.getElementById('student-ra-display').textContent = state.studentInfo.ra ? `RA: ${state.studentInfo.ra}` : '';
+            document.getElementById('student-period-display').textContent = state.studentInfo.period ? `Semestre: ${state.studentInfo.period}` : '';
+            document.getElementById('import-timestamp-display').textContent = `Boletim importado às ${state.studentInfo.importedAt}`;
+            if (state.studentInfo.course) {
+                document.getElementById('header-subtitle').textContent = `${state.studentInfo.course} • Critério: Média Final ≥ 6,00`;
+            }
+        }
+
         function renderSubjectsSelector() {
             const container = document.getElementById('subjects-grid');
+            document.getElementById('subjects-count-label').textContent = SUBJECTS_CONFIG.length;
             container.innerHTML = '';
 
             SUBJECTS_CONFIG.forEach(sub => {
@@ -727,7 +1239,7 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.onclick = () => selectSubject(sub.id);
-                btn.className = `text-left p-3 rounded-xl border transition-all flex flex-col justify-between min-h-[84px] ${
+                btn.className = `text-left p-3 rounded-xl border transition-all flex flex-col justify-between min-h-[84px] cursor-pointer ${
                     isSelected
                         ? 'bg-mack-600 text-white border-mack-700 shadow-md ring-2 ring-mack-600/20'
                         : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
@@ -753,10 +1265,9 @@
             });
         }
 
-        // Cria o componente HTML de um campo de avaliação individual (A, B, C, F, G, H, Partic, AF)
         function createGradeFieldCard(fieldKey, label, subLabel, weightText, isTarget) {
             const subId = state.selectedSubjectId;
-            const currentValue = state.grades[subId][fieldKey] ?? '';
+            const currentValue = state.grades[subId]?.[fieldKey] ?? '';
 
             const wrapper = document.createElement('div');
             wrapper.className = `p-3.5 rounded-xl border transition-all ${
@@ -815,17 +1326,30 @@
             return wrapper;
         }
 
-        // Renderiza os campos da disciplina selecionada
         function renderSelectedSubjectForm() {
             const subject = SUBJECTS_CONFIG.find(s => s.id === state.selectedSubjectId);
             const activeTarget = state.targetField[subject.id] || null;
 
-            // Cabeçalho
             document.getElementById('subject-code').textContent = `CÓD. ${subject.code}`;
             document.getElementById('subject-formula-badge').textContent = `MI: ${Math.round(subject.miWeights.ni1 * 100)}% NI1 + ${Math.round(subject.miWeights.ni2 * 100)}% NI2`;
             document.getElementById('subject-title').textContent = subject.name;
 
-            // Status do Alvo
+            // Badge de faltas (se importado do PDF)
+            const absBadge = document.getElementById('subject-absences-badge');
+            const absInfo = state.absences?.[subject.id];
+            if (absInfo && absInfo.limit > 0) {
+                const ratio = absInfo.count / absInfo.limit;
+                absBadge.classList.remove('hidden');
+                if (ratio >= 0.85) {
+                    absBadge.className = 'text-xs font-semibold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200';
+                } else {
+                    absBadge.className = 'text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200';
+                }
+                absBadge.textContent = `Faltas: ${absInfo.count} / ${absInfo.limit} (${absInfo.pct}%)`;
+            } else {
+                absBadge.classList.add('hidden');
+            }
+
             const targetLabel = document.getElementById('target-status-label');
             const clearTargetBtn = document.getElementById('clear-target-btn');
             if (activeTarget) {
@@ -837,12 +1361,10 @@
                 clearTargetBtn.classList.add('hidden');
             }
 
-            // Fórmulas textuais
             document.getElementById('ni1-formula-text').textContent = subject.ni1FormulaText;
             document.getElementById('ni2-formula-text').textContent = subject.ni2FormulaText;
             document.getElementById('mi-formula-text').textContent = `${subject.miFormulaText}  |  MF = (MI + AF) / 2`;
 
-            // Nota específica de NI2 (ex: Química Geral)
             const ni2NoteEl = document.getElementById('ni2-note');
             if (subject.ni2Note) {
                 ni2NoteEl.textContent = subject.ni2Note;
@@ -851,7 +1373,6 @@
                 ni2NoteEl.classList.add('hidden');
             }
 
-            // Renderiza NI1
             const ni1Container = document.getElementById('ni1-inputs-container');
             ni1Container.innerHTML = '';
             Object.entries(subject.ni1Weights).forEach(([key, weight]) => {
@@ -866,7 +1387,6 @@
                 ni1Container.appendChild(card);
             });
 
-            // Renderiza NI2
             const ni2Container = document.getElementById('ni2-inputs-container');
             ni2Container.innerHTML = '';
             Object.entries(subject.ni2Weights).forEach(([key, weight]) => {
@@ -881,7 +1401,6 @@
                 ni2Container.appendChild(card);
             });
 
-            // Renderiza Extras (Participação e AF)
             const extrasContainer = document.getElementById('extras-inputs-container');
             extrasContainer.innerHTML = '';
             
@@ -904,15 +1423,11 @@
             extrasContainer.appendChild(afCard);
         }
 
-        // Atualiza todos os cálculos, banners, gráficos e resumo sem recriar os inputs (evita perder foco ao digitar)
         function updateDynamicCalculations() {
             const subject = SUBJECTS_CONFIG.find(s => s.id === state.selectedSubjectId);
             const activeTarget = state.targetField[subject.id] || null;
-
-            // Se houver um campo alvo selecionado, calculamos o valor necessário e também simulamos o resultado caso o aluno tire essa nota
             const targetCalc = activeTarget ? calculateRequiredTargetGrade(subject, activeTarget) : null;
 
-            // Atualiza banner de resultado do alvo e valor inline no campo bloqueado
             const banner = document.getElementById('target-result-banner');
             if (targetCalc) {
                 banner.classList.remove('hidden');
@@ -942,7 +1457,7 @@
                             <p class="text-blue-800 mt-0.5">
                                 ${targetCalc.mode === 'AF'
                                     ? `Com sua MI atual de <strong>${formatBR(targetCalc.baseMI)}</strong>, você precisa tirar pelo menos <strong>${reqFormatted}</strong> na AF para que (MI + AF)/2 = 6,00.`
-                                    : `Tirando <strong>${reqFormatted}</strong> em <strong>${fieldDisplayName}</strong>, sua Média Intermediária (MI) atingirá <strong>6,00</strong> (arredondada a 1 casa, como no boletim) (aprovação direta sem AF).`
+                                    : `Tirando <strong>${reqFormatted}</strong> em <strong>${fieldDisplayName}</strong>, sua Média Intermediária (MI) atingirá <strong>6,00</strong> (arredondada a 1 casa, como no boletim).`
                                 }
                             </p>
                         </div>
@@ -950,7 +1465,6 @@
                     if (inlineSpan) inlineSpan.textContent = `Precisa de ${reqFormatted}`;
                 } else {
                     const reqFormatted = formatBR(Math.ceil(targetCalc.required * 100 - 1e-9) / 100);
-                    // Calcula quanto seria necessário na AF caso ele tire 10,00 nesta avaliação
                     const maxScenarioGrades = { ...state.grades[subject.id], [targetCalc.targetKey]: '10' };
                     const maxMetrics = calculateSubjectMetrics(subject, maxScenarioGrades);
                     const afNeededEvenWithTen = Math.max(0, 12.0 - maxMetrics.mi);
@@ -975,23 +1489,19 @@
                 banner.classList.add('hidden');
             }
 
-            // Calcula métricas atuais (com o campo alvo considerado como 0 se estiver vazio/bloqueado)
             const calcGrades = { ...state.grades[subject.id] };
             if (activeTarget) {
                 calcGrades[activeTarget] = '0';
             }
             const m = calculateSubjectMetrics(subject, calcGrades);
 
-            // Atualiza displays de NI1 e NI2
             document.getElementById('ni1-result').textContent = formatBR(m.ni1);
             document.getElementById('ni2-result').textContent = formatBR(m.ni2);
 
-            // Atualiza painel lateral de resultados
             document.getElementById('mi-display').textContent = formatBR(m.mi);
             const mfDisplay = document.getElementById('mf-display');
             mfDisplay.textContent = formatBR(m.mf);
 
-            // Cores da MF
             if (!m.anyEntered) {
                 mfDisplay.className = 'text-2xl sm:text-3xl font-extrabold text-slate-300 mt-0.5 block';
             } else if (m.mf >= 6.0) {
@@ -1000,7 +1510,6 @@
                 mfDisplay.className = 'text-2xl sm:text-3xl font-extrabold text-amber-400 mt-0.5 block';
             }
 
-            // Badge de Status
             const statusBadge = document.getElementById('status-badge');
             if (m.status === 'pending') {
                 statusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-slate-700 text-slate-300';
@@ -1019,7 +1528,6 @@
                 statusBadge.textContent = 'Abaixo da Média (MF < 6)';
             }
 
-            // Barra de progresso até 6,00
             const pct = Math.min(100, Math.round((m.mf / 6.0) * 100));
             document.getElementById('progress-percent').textContent = `${pct}%`;
             const bar = document.getElementById('progress-bar');
@@ -1032,7 +1540,6 @@
                 bar.className = 'h-full rounded-full bg-rose-500 transition-all duration-300';
             }
 
-            // Composição detalhada
             document.getElementById('weight-ni1-label').textContent = `(${Math.round(subject.miWeights.ni1 * 100)}%)`;
             document.getElementById('weight-ni2-label').textContent = `(${Math.round(subject.miWeights.ni2 * 100)}%)`;
             document.getElementById('contrib-ni1').textContent = formatBR(m.contribNi1);
@@ -1055,13 +1562,11 @@
                 summaryAf.className = 'font-medium text-amber-700';
             }
 
-            // Atualiza os badges dos cards superiores e o resumo geral
             renderSubjectsSelector();
             renderAllSubjectsSummary();
             lucide.createIcons();
         }
 
-        // Renderiza a tabela compacta de resumo geral das 7 disciplinas
         function renderAllSubjectsSummary() {
             const container = document.getElementById('all-subjects-summary');
             container.innerHTML = '';
@@ -1090,7 +1595,7 @@
                 const row = document.createElement('button');
                 row.type = 'button';
                 row.onclick = () => selectSubject(sub.id);
-                row.className = `w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs transition ${
+                row.className = `w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs transition cursor-pointer ${
                     sub.id === state.selectedSubjectId
                         ? 'bg-slate-100 font-semibold text-slate-900'
                         : 'hover:bg-slate-50 text-slate-600'
@@ -1107,13 +1612,12 @@
             });
         }
 
-        // Renderização completa
         function renderAll() {
+            renderStudentInfoBar();
             renderSelectedSubjectForm();
             updateDynamicCalculations();
         }
 
-        // Controle do Modal de Limpeza
         let pendingResetScope = null;
 
         function openResetModal(scope) {
@@ -1129,7 +1633,7 @@
                 desc.textContent = 'Todas as notas digitadas e metas selecionadas apenas desta disciplina serão apagadas.';
             } else {
                 title.textContent = 'Limpar todas as disciplinas?';
-                desc.textContent = 'Todas as notas preenchidas em todas as 7 disciplinas serão apagadas e voltarão a ficar em branco.';
+                desc.textContent = 'Todas as notas preenchidas e dados importados em todas as disciplinas serão apagados.';
             }
 
             confirmBtn.onclick = executeReset;
@@ -1147,18 +1651,22 @@
         function executeReset() {
             if (pendingResetScope === 'current') {
                 const subId = state.selectedSubjectId;
-                state.grades[subId] = { A: '', B: '', C: '', F: '', G: '', H: '', Partic: '', AF: '' };
+                state.grades[subId] = { A: '', B: '', C: '', D: '', E: '', F: '', G: '', H: '', I: '', J: '', Partic: '', AF: '' };
                 state.targetField[subId] = null;
             } else if (pendingResetScope === 'all') {
+                SUBJECTS_CONFIG = JSON.parse(JSON.stringify(DEFAULT_SUBJECTS_CONFIG));
+                state.customSubjects = null;
                 state.grades = createEmptyGradesState();
                 state.targetField = {};
+                state.studentInfo = null;
+                state.absences = {};
+                state.selectedSubjectId = SUBJECTS_CONFIG[0].id;
             }
             saveState();
             closeResetModal();
             renderAll();
         }
 
-        // Inicialização ao carregar a página
         window.addEventListener('DOMContentLoaded', () => {
             loadState();
             renderAll();
